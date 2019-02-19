@@ -8,15 +8,21 @@ import uuid
 from opencog.atomspace import types
 from opencog.type_constructors import *
 
-import numpy
+import numpy as np
 import torch
+
+import sys
 
 
 relate_reg = re.compile('[a-z]+\[([a-z]+)\]')
 filter_reg = re.compile('[a-z]+_([a-z]+)\[([a-z]+)\]')
 filter_reg.match('filter_shape[sphere]').groups()
 relate_reg.match('relate[front]').groups()
+
 tbd = None
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def build_eval_link(atomspace, classify_type, variable, eval_link_sub):
@@ -79,7 +85,9 @@ def build_intersect(atomspace, arg0, arg1):
 
 def build_bind_link(atomspace, eval_link, inheritance):
     """
-    Build bind link from ExecutionOutput or Evaluation links and inheritance links
+    Build bind link 
+    from ExecutionOutput or Evaluation links 
+    and inheritance links
 
     :param atomspace: AtomSpace
     :param eval_link: ExecutionOutput or EvaluationLink
@@ -286,11 +294,41 @@ def extract_tensor(atom, key_data, key_shape):
     :param key_shape:
     :return: torch.Tensor
     """
-    value = atom.get_value(key_data)
+    # print ("tbd_helpers.extract_tensor was called")
+    # print ("with atom = {}".format(atom))
+    
+    # print ("atom.name = {}".format(atom.name)) 
+
+    # print ("key_data = {}".format(key_data))
+    # print ("key_shape = {}".format(key_shape))
     shape = atom.get_value(key_shape)
-    ar_value = numpy.array(value.to_list())
+    
+    
+    # print ("shape has methods {}".format(dir(shape)))
+    
+    # print ("shape = {}".format(shape))
+    
+    value = atom.get_value(key_data)
+    # print ("value = {}".format(value))
+    
+    
+    # print ("value type is {}".format(type(value)))
+    value_tlst = value.to_list()
+    # print ("value.to_list() = {}".format(value_tlst))
+    
+    ar_value = np.array(value_tlst)
+    # print ("ar_value = {}".format(ar_value))
+   
+
     ar_value = ar_value.reshape([int(x) for x in shape.to_list()])
-    return torch.from_numpy(ar_value).double()
+    # print ("and now ar_value = {}".format(ar_value))
+    # sys.exit(0)
+    tensor_result = torch.from_numpy(ar_value).double()
+    # print ("tensor_result is placed on device {}".format(tensor_result.device))
+    tensor_result = tensor_result.to(device)  #this is a quick hack
+    # print ("Now tensor_result is placed on device {}".format(tensor_result.device))
+    # sys.exit(0)
+    return tensor_result
 
 
 def filter_callback(filter_type, filter_type_instance, data_atom):
@@ -305,8 +343,14 @@ def filter_callback(filter_type, filter_type_instance, data_atom):
         An atom with attention map and features attached
     :return:
     """
+    # print ("And now tbd_helpers.filter_callback was called with")
+    # print ("filter_type = {}".format(filter_type))
+    # print ("filter_type_instance = {}".format(filter_type_instance))
+    # print ("data_atom = {}".format(data_atom))
     module_type = 'filter_' + filter_type.name + '[' + filter_type_instance.name + ']'
+    # print ("running attention...")
     run_attention(data_atom, module_type)
+    # print ("and now data_atom = {}".format(data_atom))
     return data_atom
 
 
@@ -395,10 +439,32 @@ def run_attention(data_atom, module_type):
         Module type name: e.g. filter_color[red] or same_size
     :return:
     """
+    # print ("tbd_helpers.run_attention was called")
+    # print ("with data_atom = {}".format(data_atom))
+    # print ("and module_type = {}".format(module_type))
+
+
     module = tbd.function_modules[module_type]
+    # print ("module = {}".format(module))
     atomspace = data_atom.atomspace
+    # print ("atomspace = {}".format(atomspace))
     key_attention, key_scene, key_shape_attention, key_shape_scene = generate_keys(atomspace)
+    # print ("key_attention = {}".format(key_attention))
+    # print ("key_scene = {}".format(key_scene))
+    # # print ("key_scene.value = {}".format(data_atom.get_value(key_scene)))
+    # sys.exit(0)
+    # print ("key_shape_attention = {}".format(key_shape_attention))
+    # print ("key_shape_scene = {}".format(key_shape_scene))
+    # print ("key_shape_scene.value = {}".format(data_atom.get_value(key_shape_scene)))
+    # sys.exit(0)
     feat_input = extract_tensor(data_atom, key_scene, key_shape_scene)
+    # print ("feat_input = {}".format(feat_input))
     feat_attention = extract_tensor(data_atom, key_attention, key_shape_attention)
+    #  ("feat_attention = {}".format(feat_attention))
+    # print ("module = {}".format(module))
+    
     out = module(feat_input.float(), feat_attention.float())
+    # print ("out = {}".format(out))
+    # sys.exit(0)
+    # print ("calling set_attention_map...")
     set_attention_map(data_atom, key_attention, key_shape_attention, out)

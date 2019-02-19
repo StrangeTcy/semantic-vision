@@ -7,7 +7,7 @@ import abc
 import jpype
 import numpy as np
 import opencog.logger
-import network_runner
+import network_runner  #it's None. What do we need that for?
 
 from opencog.atomspace import TruthValue
 from opencog.type_constructors import *
@@ -37,7 +37,7 @@ def initializeRootAndOpencogLogger(opencogLogLevel, pythonLogLevel):
 def pushAtomspace(parentAtomspace):
     """Create child atomspace"""
     # TODO: cannot push/pop atomspace via Python API,
-    # workarouding it using Scheme API
+    # working around it using Scheme API
     scheme_eval(parentAtomspace, '(cog-push-atomspace)')
     childAtomspace = scheme_eval_as('(cog-atomspace)')
     set_type_ctor_atomspace(childAtomspace)
