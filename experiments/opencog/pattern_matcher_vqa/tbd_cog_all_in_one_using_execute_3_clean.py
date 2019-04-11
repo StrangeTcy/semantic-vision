@@ -611,10 +611,9 @@ class TBD(CogModule):
         # this is used as input to the first AttentionModule in each program
         ones = torch.ones(1, 1, module_rows, module_cols)
         self.ones_var = ones.to(self.device)
+        # print ("self.ones_var = {} of shape {}".format(self.ones_var, self.ones_var.shape))
+        # sys.exit(0)
         self._attention_sum = 0
-        
-
-        self.features = None # initialise with none, then add values
         
 
         # generate_keys
@@ -707,6 +706,8 @@ class TBD(CogModule):
             # feat_input = feat_input_volume[n:n + 1]
             # output = feat_input
             output = self.stem(features())[n:n + 1]
+            # print ("output = {} of shape {}".format(output, output.shape))
+            # sys.exit(0)
             # program = []
             # for i in reversed(programs.data[n].cpu().numpy()):
             #     module_type = self.vocab['program_idx_to_token'][i]
@@ -776,30 +777,32 @@ class TBD(CogModule):
         self.atomspace = popAtomspace(self.atomspace)
         return answer2    
 
+  
+    # values are held in InputModule
+    # we don't need all this reshaping and tensor extraction any more
 
-    
-    
-    def extract_tensor(self, atom, key_data, key_shape):
-        """
-        Convert FloatValue attached to atom to pytorch array
-        :param atom:
-        :param key_data:
-        :param key_shape:
-        :return: torch.Tensor
-        """
+
+    # def extract_tensor(self, atom, key_data, key_shape):
+    #     """
+    #     Convert FloatValue attached to atom to pytorch array
+    #     :param atom:
+    #     :param key_data:
+    #     :param key_shape:
+    #     :return: torch.Tensor
+    #     """
         
-        shape = atom.get_value(key_shape)
-        value = atom.get_value(key_data)
+    #     shape = atom.get_value(key_shape)
+    #     value = atom.get_value(key_data)
         
-        value_tlst = value.to_list()
+    #     value_tlst = value.to_list()
             
-        ar_value = np.array(value_tlst)
+    #     ar_value = np.array(value_tlst)
           
-        ar_value = ar_value.reshape([int(x) for x in shape.to_list()])
+    #     ar_value = ar_value.reshape([int(x) for x in shape.to_list()])
        
-        tensor_result = torch.from_numpy(ar_value).double()
+    #     tensor_result = torch.from_numpy(ar_value).double()
        
-        return tensor_result        
+    #     return tensor_result        
 
    
 
@@ -849,12 +852,29 @@ class TBD(CogModule):
         # figure out the module to use 
         # and wrap it in inheritance links 
 
+        # this is really pointless
+        # let's not do this any more
 
-        data4 = FloatValue(list(features.cpu().numpy().flatten()))
+        # data4 = FloatValue(list(features.cpu().numpy().flatten()))
+        # print ("data4 = {}".format(data4))
+        # sys.exit(0)
+        
+
+        # create a ConceptNode to hold our features
         bbox_instance4 = self.atomspace.add_node(types.ConceptNode, 'BoundingBox4')
-        bbox_instance4.set_value(self.key_scene, data4)
-        bbox_instance4.set_value(self.key_shape_scene, FloatValue(list(features.cpu().numpy().shape)))
+        # bbox_instance4.set_value(self.key_scene, data4)
+        
+        # now fill it with actual features
+        set_value(bbox_instance4, features)
+        # print ("now bbox_instance4 holds value {} of shape {}".format(get_value(bbox_instance4), get_value(bbox_instance4).shape))
+        # sys.exit(0)
+        # bbox_instance4.set_value(self.key_shape_scene, FloatValue(list(features.cpu().numpy().shape)))
+        
+        # create another ConceptNode, just for the BoundingBox concept
         box_concept4 = self.atomspace.add_node(types.ConceptNode, 'BoundingBox')
+        
+        # link BoundingBox and and instance of it. 
+        # do we need this?
         self.atomspace.add_link(types.InheritanceLink, [bbox_instance4, box_concept4])
     
 
@@ -862,8 +882,10 @@ class TBD(CogModule):
         if inheritance_set4 is None:
             inheritance_set4 = set()
 
+        # this set is currently not used    
         modules_and_args_inh_set = set()    
 
+        # create a variable nodefor our scene
         scene = atomspace.add_node(types.VariableNode, "$Scene")
         
         schema = None
@@ -881,6 +903,7 @@ class TBD(CogModule):
                         varlist4.append(atom)
 
             print ("varlist4 = {}".format(varlist4))
+            print ("link = {}".format(link))
             # sys.exit(0)            
             
             variable_list4 = self.atomspace.add_link(types.VariableList, varlist4)
@@ -891,7 +914,8 @@ class TBD(CogModule):
             # # list_link2 = ListLink(varlist2 + link)
             # list_link2 = ListLink(ListLink(varlist2),link)
             # print ("ListLink(varlist2) = {}".format(ListLink(varlist2)))
-            # print ("list_link2 = {}".format(list_link2))
+            print ("list_link4 = {}".format(list_link4))
+            # sys.exit(0)
             
 
             # bind_link_0 = self.atomspace.add_link(types.BindLink, [variable_list2, conj2, list_link2])
@@ -901,6 +925,8 @@ class TBD(CogModule):
             # is for this BindLink to produce a list (ListLink? SetLink?)
             # of possible answers by running a lot of modules
             bind_link_0 = BindLink(variable_list4, conj4, list_link4)
+            print ("bind_link_0 = {}".format(bind_link_0))
+            sys.exit(0)
             stuff_5_0 = execute_atom(self.atomspace, bind_link_0)
             return stuff_5_0          
 
@@ -909,6 +935,8 @@ class TBD(CogModule):
         if current.startswith('query'):
             query_type = current.split('_')[-1]
             sub_prog, left4, inh, final_stuff = self.return_prog4(atomspace, features, rest)
+            print ("in branch query, sub_prog = {}".format(sub_prog))
+            # sys.exit(0)
             inheritance_set4 |= inh
             var = atomspace.add_node(types.VariableNode, "$X")
             concept = atomspace.add_node(types.ConceptNode, query_type)
@@ -942,7 +970,7 @@ class TBD(CogModule):
             inh_link = atomspace.add_link(types.InheritanceLink, [scene, concept])
             inheritance_set4.add(inh_link)
             
-            scene = bbox_instance4
+            # scene = bbox_instance4
            
             print ("initialising scene directly") 
             """
@@ -958,14 +986,31 @@ class TBD(CogModule):
 
             atomspace = scene.atomspace
             
-            data_atom = atomspace.add_node(types.ConceptNode, 'Data-' + str(uuid.uuid4()))
+            # data_atom = atomspace.add_node(types.ConceptNode, 'Data-' + str(uuid.uuid4()))
             
+            # let's turn data_atom into an InputModule
+            # it holds features and attention
+            # as a list of 2 tensors
+            # TODO: find a better way to deal with this
+            data_atom = InputModule(ConceptNode("Data-{}".format(str(uuid.uuid4()))), [features, self.ones_var])
+
+
+
+            # data_atom_2_experimental = InputModule(ConceptNode("data_atom_2_experimental"), [torch.Tensor([1,1]), torch.Tensor([2,2])])
+            # print ("data_atom_2_experimental() = {}".format(data_atom_2_experimental()))
+            # print ("data_atom_2_experimental.execute() = {}".format(data_atom_2_experimental.execute()))
+            # sys.exit(0)
             
-            data_atom.set_value(self.key_scene, scene.get_value(self.key_scene))
-            data_atom.set_value(self.key_shape_scene, scene.get_value(self.key_shape_scene))
-            data_atom.set_value(self.key_attention, FloatValue(list(self.ones_var.flatten())))
-            data_atom.set_value(self.key_shape_attention, FloatValue(list(self.ones_var.shape)))
-            print ("data_atom = {}".format(data_atom))
+            # with data atom as an InputModule, 
+            # we no longer need all this manual value setting
+            # we also no longer need to reshape tensors,
+            # turn them to lists and back, and so on
+
+            # data_atom.set_value(self.key_scene, scene.get_value(self.key_scene))
+            # data_atom.set_value(self.key_shape_scene, scene.get_value(self.key_shape_scene))
+            # data_atom.set_value(self.key_attention, FloatValue(list(self.ones_var.flatten())))
+            # data_atom.set_value(self.key_shape_attention, FloatValue(list(self.ones_var.shape)))
+            # print ("data_atom = {}".format(data_atom()))
             # sys.exit(0)
             return data_atom, rest, inheritance_set4, final_stuff
         
@@ -975,6 +1020,7 @@ class TBD(CogModule):
             filter_type, filter_arg = filter_reg.match(current).groups()
             sub_prog, left4, inh, final_stuff = self.return_prog4(self.atomspace, features, rest)
             print ("in filter branch, sub_prog = {}".format(sub_prog))
+            # sys.exit(0)
             filter_type_atom = atomspace.add_node(types.ConceptNode, filter_type)
             filter_arg_atom = atomspace.add_node(types.ConceptNode, filter_arg)
             
@@ -993,11 +1039,30 @@ class TBD(CogModule):
             module_type = 'filter_' + filter_type_atom.name + '[' + filter_arg_atom.name + ']'
             module = self.function_modules[module_type]
            
-            feat_input = self.extract_tensor(data_atom, self.key_scene, self.key_shape_scene)
-            feat_attention = self.extract_tensor(data_atom, self.key_attention, self.key_shape_attention)
-                        
-            out = module(feat_input.float(), feat_attention.float())
-            self.set_attention_map(data_atom, self.key_attention, self.key_shape_attention, out)
+            # feat_input = self.extract_tensor(data_atom, self.key_scene, self.key_shape_scene)
+            # print ("feat_input = {} of shape {}".format(feat_input, feat_input.shape))
+            # sys.exit(0)
+            # feat_attention = self.extract_tensor(data_atom, self.key_attention, self.key_shape_attention)
+            # print ("feat_attention = {} of shape {}".format(feat_attention, feat_attention.shape))
+            # sys.exit(0)
+
+            # out = module(feat_input.float(), feat_attention.float())
+            out = module(data_atom()[0], data_atom()[1])
+            print ("out = {}".format(out))
+            # sys.exit(0)
+            # self.set_attention_map(data_atom, self.key_attention, self.key_shape_attention, out)
+
+            # now we can set attention value directly
+            # set_value(data_atom, [data_atom()[0], out])
+            print ("before, data_atom = {}".format(data_atom()))
+            
+            # this is probably a bad way to set values
+            # but it works for now
+            # TODO: find a better way
+            data_atom()[1] = out
+            print ("after, data_atom = {}".format(data_atom()))
+            # sys.exit(0)
+
 
             return data_atom, left4, inheritance_set4, final_stuff    
             
