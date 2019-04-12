@@ -106,9 +106,8 @@ def build_eval_link(atomspace, classify_type, variable, eval_link_sub):
 
 # CALLBACKS
 
-
 def filter_callback(filter_type, filter_type_instance, data_atom):
-    
+   
     """
     Function which applies 
     the filtering neural network module
@@ -123,19 +122,20 @@ def filter_callback(filter_type, filter_type_instance, data_atom):
     """
        
     module_type = 'filter_' + filter_type.name + '[' + filter_type_instance.name + ']'
+    print ("in filter_callback")
+    print ("module_type = {}".format(module_type))
     # This is really bad.
     # I need to figure out a way to include this callback
     # in TBD
+
+    # print ("our data_atom = {}".format(data_atom))
+       
+
+    print ("calling tbd.run_attention")
     tbd.run_attention(data_atom, module_type)
+
+    # print ("and now data_atom holds a value: {}".format(get_value(data_atom)))
     return data_atom
-
-
-def classify(classifier_type, instance, data_atom):
-    """
-    Same as filter_callback : 
-    should be replaced with classifier returning tv
-    """
-    return filter_callback(classifier_type, instance, data_atom)
 
 
 #============================================================
@@ -608,24 +608,13 @@ class TBD(CogModule):
                 thing2 = [self.state_dict()[name] for name in load_obj_keys if  module_name in name]
                       
         
-        # this is used as input to the first AttentionModule in each program
+        # this is used as input to the first AttentionModule
+        # in each program
         ones = torch.ones(1, 1, module_rows, module_cols)
         self.ones_var = ones.to(self.device)
-        # print ("self.ones_var = {} of shape {}".format(self.ones_var, self.ones_var.shape))
-        # sys.exit(0)
         self._attention_sum = 0
         
 
-        # generate_keys
-            
-        # create predicate nodes 
-        # to be used as keys for attaching values to atoms
-                    
-        self.key_scene = self.atomspace.add_node(types.PredicateNode, 'key_scene')
-        self.key_shape_scene = self.atomspace.add_node(types.PredicateNode, 'key_shape_scene')
-        self.key_attention = self.atomspace.add_node(types.PredicateNode, 'key_data')
-        self.key_shape_attention = self.atomspace.add_node(types.PredicateNode, 'key_shape_attention')
-           
         
         self = self.to(device)
     
@@ -726,7 +715,7 @@ class TBD(CogModule):
             # result2 = self.run_program(output, program)
             result2 = self.run_program(output, program_list)
             results2.append(result2)
-            sys.exit(0)
+            # sys.exit(0)
 
         return results2
 
@@ -756,7 +745,7 @@ class TBD(CogModule):
             concept = None
             for atom in atoms:
                 if atom.name.startswith("Data-"):
-                    value_ = self.extract_tensor(atom, self.key_attention, self.key_shape_attention)
+                    value_ = get_value(atom)[1]
                     if str(value_.device).startswith("cuda"):
                         value_ = value_.to("cpu")
                     value = value_.numpy().sum()
@@ -777,34 +766,6 @@ class TBD(CogModule):
         self.atomspace = popAtomspace(self.atomspace)
         return answer2    
 
-  
-    # values are held in InputModule
-    # we don't need all this reshaping and tensor extraction any more
-
-
-    # def extract_tensor(self, atom, key_data, key_shape):
-    #     """
-    #     Convert FloatValue attached to atom to pytorch array
-    #     :param atom:
-    #     :param key_data:
-    #     :param key_shape:
-    #     :return: torch.Tensor
-    #     """
-        
-    #     shape = atom.get_value(key_shape)
-    #     value = atom.get_value(key_data)
-        
-    #     value_tlst = value.to_list()
-            
-    #     ar_value = np.array(value_tlst)
-          
-    #     ar_value = ar_value.reshape([int(x) for x in shape.to_list()])
-       
-    #     tensor_result = torch.from_numpy(ar_value).double()
-       
-    #     return tensor_result        
-
-   
 
     def run_attention(self, data_atom, module_type):
         """
@@ -820,31 +781,10 @@ class TBD(CogModule):
 
         
         module = self.function_modules[module_type]
-              
-        feat_input = self.extract_tensor(data_atom, self.key_scene, self.key_shape_scene)
-       
-        feat_attention = self.extract_tensor(data_atom, self.key_attention, self.key_shape_attention)
-        
-        out = module(feat_input.float(), feat_attention.float())
-        self.set_attention_map(data_atom, self.key_attention, self.key_shape_attention, out)
+                
+        out = module(get_value(data_atom)[0], get_value(data_atom)[1])
+        get_value(data_atom)[1] = out
     
-
-    def set_attention_map(self, data_atom, key_attention, key_shape_attention, attention):
-        """
-        Attach attention map to atom
-
-        :param data_atom: Atom
-        :param key_attention: Atom
-            Atom to be used as key for the attention map
-        :param key_shape_attention:
-            Atom to be used as key for the attention map shape
-        :param attention: numpy.array
-        :return:
-        """
-        
-        data_atom.set_value(self.key_attention, FloatValue(list(attention.flatten())))
-        data_atom.set_value(self.key_shape_attention, FloatValue(list(attention.shape)))
-        
 
     def return_prog4(self, atomspace, features, commands, inheritance_set4=None):
         
@@ -852,24 +792,15 @@ class TBD(CogModule):
         # figure out the module to use 
         # and wrap it in inheritance links 
 
-        # this is really pointless
-        # let's not do this any more
-
-        # data4 = FloatValue(list(features.cpu().numpy().flatten()))
-        # print ("data4 = {}".format(data4))
-        # sys.exit(0)
-        
+               
 
         # create a ConceptNode to hold our features
         bbox_instance4 = self.atomspace.add_node(types.ConceptNode, 'BoundingBox4')
-        # bbox_instance4.set_value(self.key_scene, data4)
+       
         
         # now fill it with actual features
         set_value(bbox_instance4, features)
-        # print ("now bbox_instance4 holds value {} of shape {}".format(get_value(bbox_instance4), get_value(bbox_instance4).shape))
-        # sys.exit(0)
-        # bbox_instance4.set_value(self.key_shape_scene, FloatValue(list(features.cpu().numpy().shape)))
-        
+                
         # create another ConceptNode, just for the BoundingBox concept
         box_concept4 = self.atomspace.add_node(types.ConceptNode, 'BoundingBox')
         
@@ -926,8 +857,10 @@ class TBD(CogModule):
             # of possible answers by running a lot of modules
             bind_link_0 = BindLink(variable_list4, conj4, list_link4)
             print ("bind_link_0 = {}".format(bind_link_0))
-            sys.exit(0)
+            print ("executing the bindlink...")
             stuff_5_0 = execute_atom(self.atomspace, bind_link_0)
+            print ("stuff_5_0 = {}".format(stuff_5_0))
+            # sys.exit(0)
             return stuff_5_0          
 
         
@@ -940,18 +873,37 @@ class TBD(CogModule):
             inheritance_set4 |= inh
             var = atomspace.add_node(types.VariableNode, "$X")
             concept = atomspace.add_node(types.ConceptNode, query_type)
-            # inh_link = atomspace.add_link(types.InheritanceLink, [var, concept])
-            inh_link = InheritanceLink(var, concept)
+            inh_link = atomspace.add_link(types.InheritanceLink, [var, concept])
+            # inh_link = InheritanceLink(var, concept)
             assert(inh_link not in inheritance_set4)
             inheritance_set4.add(inh_link)
 
 
+           
             
             schema = atomspace.add_node(types.GroundedSchemaNode, "py:filter_callback")
+           
+            # ListLink accepts nodes only, which
+            # concept and var are, and sub_prog is not
+            # so we'll create a temporary atom 
+            # to hold the data
 
+            
+            # this node has the same name that starts with Data
+            # this should make arg-maxing work
+            temp_data = atomspace.add_node(types.ConceptNode, sub_prog.call_forward(None).name)
+            set_value(temp_data, sub_prog())
+            # print ("now temp_data is {} and holds value {}".format(temp_data, get_value(temp_data)))
+            # sys.exit(0)
+
+            # lst = atomspace.add_link(types.ListLink, [concept,
+            #                                       var,
+            #                                       sub_prog])
             lst = atomspace.add_link(types.ListLink, [concept,
                                                   var,
-                                                  sub_prog])
+                                                  temp_data])
+            
+            print ("lst = {}".format(lst))
             link = atomspace.add_link(types.ExecutionOutputLink, [schema, lst])
 
 
@@ -994,24 +946,6 @@ class TBD(CogModule):
             # TODO: find a better way to deal with this
             data_atom = InputModule(ConceptNode("Data-{}".format(str(uuid.uuid4()))), [features, self.ones_var])
 
-
-
-            # data_atom_2_experimental = InputModule(ConceptNode("data_atom_2_experimental"), [torch.Tensor([1,1]), torch.Tensor([2,2])])
-            # print ("data_atom_2_experimental() = {}".format(data_atom_2_experimental()))
-            # print ("data_atom_2_experimental.execute() = {}".format(data_atom_2_experimental.execute()))
-            # sys.exit(0)
-            
-            # with data atom as an InputModule, 
-            # we no longer need all this manual value setting
-            # we also no longer need to reshape tensors,
-            # turn them to lists and back, and so on
-
-            # data_atom.set_value(self.key_scene, scene.get_value(self.key_scene))
-            # data_atom.set_value(self.key_shape_scene, scene.get_value(self.key_shape_scene))
-            # data_atom.set_value(self.key_attention, FloatValue(list(self.ones_var.flatten())))
-            # data_atom.set_value(self.key_shape_attention, FloatValue(list(self.ones_var.shape)))
-            # print ("data_atom = {}".format(data_atom()))
-            # sys.exit(0)
             return data_atom, rest, inheritance_set4, final_stuff
         
 
@@ -1035,34 +969,23 @@ class TBD(CogModule):
             # how do we use it?
             modules_and_args_inh_set.add(inh_filter)
 
-            # sys.exit(0)
+            
             module_type = 'filter_' + filter_type_atom.name + '[' + filter_arg_atom.name + ']'
             module = self.function_modules[module_type]
            
-            # feat_input = self.extract_tensor(data_atom, self.key_scene, self.key_shape_scene)
-            # print ("feat_input = {} of shape {}".format(feat_input, feat_input.shape))
-            # sys.exit(0)
-            # feat_attention = self.extract_tensor(data_atom, self.key_attention, self.key_shape_attention)
-            # print ("feat_attention = {} of shape {}".format(feat_attention, feat_attention.shape))
-            # sys.exit(0)
 
             # out = module(feat_input.float(), feat_attention.float())
             out = module(data_atom()[0], data_atom()[1])
-            print ("out = {}".format(out))
-            # sys.exit(0)
-            # self.set_attention_map(data_atom, self.key_attention, self.key_shape_attention, out)
-
-            # now we can set attention value directly
-            # set_value(data_atom, [data_atom()[0], out])
-            print ("before, data_atom = {}".format(data_atom()))
+            # print ("out = {}".format(out))
+            
+            # print ("before, data_atom = {}".format(data_atom()))
             
             # this is probably a bad way to set values
             # but it works for now
             # TODO: find a better way
             data_atom()[1] = out
-            print ("after, data_atom = {}".format(data_atom()))
-            # sys.exit(0)
-
+            # print ("after, data_atom = {}".format(data_atom()))
+           
 
             return data_atom, left4, inheritance_set4, final_stuff    
             
