@@ -169,6 +169,7 @@ class Stem(CogModule):
          
 
     def forward(self, x):
+        print ("stem got x = {}".format(x))
         return self.stem(x) 
 
 
@@ -730,9 +731,6 @@ class TBD(CogModule):
         print ("we'll now pass it to return_prog4")
         eval_link4, left4, inheritance_set4, answer_stuff = self.return_prog4(self.atomspace, features, rev_prog)
         
-        
-        #======================================
-        
         result2 = answer_stuff
         answer_set2 = result2
         items2 = []
@@ -781,9 +779,21 @@ class TBD(CogModule):
 
         
         module = self.function_modules[module_type]
+
+        # if isinstance(data_atom, types.ConceptNode):
+        #     print ("We've just got a ConceptNode with data!")
+        # elif isinstance(data_atom, InputModule):
+        if isinstance(data_atom, InputModule):
+            print ("We've got an InputModule with data!")
+            # sys.exit(0)
+            out = module(data_atom()[0], data_atom()[1])
+            data_atom()[1] = out
+        elif data_atom.is_node:
+            print ("We've just got a ConceptNode with data!")
+            out = module(get_value(data_atom)[0], get_value(data_atom)[1])
+            get_value(data_atom)[1] = out
                 
-        out = module(get_value(data_atom)[0], get_value(data_atom)[1])
-        get_value(data_atom)[1] = out
+        
     
 
     def return_prog4(self, atomspace, features, commands, inheritance_set4=None):
@@ -1021,13 +1031,16 @@ class TBD(CogModule):
             inheritance_set4 |= inh
             sub_prog1, right, inh, final_stuff = self.return_prog4(atomspace,  features, left)
             inheritance_set4 |= inh
+
+
             
-            
-            feat_attention1 = self.extract_tensor(sub_prog0, self.key_attention, self.key_shape_attention)
-            feat_attention4 = self.extract_tensor(sub_prog1, self.key_attention,self. key_shape_attention)
+            # feat_attention1 = self.extract_tensor(sub_prog0, self.key_attention, self.key_shape_attention)
+            # feat_attention4 = self.extract_tensor(sub_prog1, self.key_attention,self. key_shape_attention)
             module = self.function_modules['intersect']
-            out = module(feat_attention1, feat_attention4)
-            self.set_attention_map(sub_prog0, self.key_attention, self.key_shape_attention, out)
+            # out = module(feat_attention1, feat_attention4)
+            out = module(sub_prog0()[1], sub_prog1()[1])
+            # self.set_attention_map(sub_prog0, self.key_attention, self.key_shape_attention, out)
+            sub_prog0()[1] = out
             return sub_prog0, right, inheritance_set4, final_stuff
 
 
