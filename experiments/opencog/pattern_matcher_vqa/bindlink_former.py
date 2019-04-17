@@ -333,6 +333,22 @@ class ComparisonModule(CogModule):
 
 
 
+def initialize_atomspace_by_facts(atomspaceFileName=None, ure_config=None, directories=[]):
+        atomspace = scheme_eval_as('(cog-atomspace)')
+        scheme_eval(atomspace, '(use-modules (opencog))')
+        scheme_eval(atomspace, '(use-modules (opencog exec))')
+        scheme_eval(atomspace, '(use-modules (opencog query))')
+        scheme_eval(atomspace, '(use-modules (opencog logger))')
+        scheme_eval(atomspace, '(add-to-load-path ".")')
+        for item in directories:
+            scheme_eval(atomspace, '(add-to-load-path "{0}")'.format(item))
+        if atomspaceFileName is not None:
+            scheme_eval(atomspace, '(load-from-path "' + atomspaceFileName + '")')
+        if ure_config is not None:
+            scheme_eval(atomspace, '(load-from-path "' + ure_config + '")')
+        print ("facts were loaded into atomspace {}".format(atomspace))
+        return atomspace
+
 
 
 
@@ -364,7 +380,8 @@ def main():
     vocab = load_vocab(Path('/media/enoch/0645F864324D53D4/neural_stuff/tbd/data/vocab.json'))  #'/mnt/fileserver/shared/models/tbd-nets-models/data/vocab.json'
     
     # we have to initialize atomspace here, or Node creation won't work
-    atomspace = AtomSpace()
+    #atomspace = AtomSpace()
+    atomspace = initialize_atomspace_by_facts("tbd_cog/tbdas.scm")
     initialize_opencog(atomspace)
 
        
@@ -455,12 +472,14 @@ def main():
             features_atom, attention_atom, left, inh = form_bindlink(atomspace, features, rest)
             print ("features_atom.execute() = {}".format(features_atom.execute()))
             print ("attention_atom = {}".format(attention_atom))
-            sys.exit(0)
+            # sys.exit(0)
 
             inheritance_set |= inh
             var = atomspace.add_node(types.VariableNode, "$X")
             concept = atomspace.add_node(types.ConceptNode, query_type)
             inh_link = atomspace.add_link(types.InheritanceLink, [var, concept])
+            print ("inh_link = {}".format(inh_link))
+            sys.exit(0)
             assert(inh_link not in inheritance_set)
             inheritance_set.add(inh_link)
             # link = build_filter(atomspace, concept, var, exec_out_sub=sub_prog)
@@ -491,7 +510,7 @@ def main():
            
             bind_link_0 = BindLink(variable_list, conj, list_link)
             print ("bind_link_0 = {}".format(bind_link_0))
-            # sys.exit(0)
+            sys.exit(0)
 
 
             module_type = 'filter_' + query_type# + '[' + var + ']'
