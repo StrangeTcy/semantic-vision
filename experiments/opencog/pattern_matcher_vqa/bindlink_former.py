@@ -9,8 +9,6 @@ from tbd.utils.clevr import load_vocab, ClevrDataLoaderH5
 import os
 import sys # only used for debugging 
 
-# import numpy as np
-
 from tqdm import tqdm #nice progress bars
 
 from opencog.type_constructors import *
