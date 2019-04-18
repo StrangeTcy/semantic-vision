@@ -477,17 +477,25 @@ def main():
             concept = atomspace.add_node(types.ConceptNode, query_type)
             inh_link = atomspace.add_link(types.InheritanceLink, [var, concept])
             print ("inh_link = {}".format(inh_link))
-            sys.exit(0)
+            
             assert(inh_link not in inheritance_set)
             inheritance_set.add(inh_link)
             # link = build_filter(atomspace, concept, var, exec_out_sub=sub_prog)
             
+            # until i figure out the grounding,
+            # let's use hard-coding
+            # so
+            var = ConceptNode("rubber")
 
-            module_type = 'filter_' + query_type + '[' + var + ']'
+            module_type = 'filter_' + query_type + '[' + var.name + ']'
             module = function_modules[module_type]
 
             link = module.execute(features_atom.execute(), attention_atom)
-
+            print ("link = {}".format(link))
+            print ("now let's execute it")
+            result = execute_atom(atomspace, link)
+            print ("result = {}".format(result))
+            sys.exit(0)
 
             varlist = []
             for inh in inheritance_set:
@@ -496,6 +504,7 @@ def main():
                         varlist.append(atom)
 
             print ("varlist = {}".format(varlist))
+            # sys.exit(0)
             print ("link = {}".format(link))
                     
             
@@ -506,30 +515,33 @@ def main():
             print ("list_link = {}".format(list_link))
                        
            
-            bind_link_0 = BindLink(variable_list, conj, list_link)
-            print ("bind_link_0 = {}".format(bind_link_0))
-            sys.exit(0)
+            bind_link = BindLink(variable_list, conj, list_link)
+            print ("bind_link = {}".format(bind_link))
+            # sys.exit(0)
 
 
-            module_type = 'filter_' + query_type# + '[' + var + ']'
-            module = function_modules[module_type]
+            # module_type = 'filter_' + query_type# + '[' + var + ']'
+            # module = function_modules[module_type]
 
-            return link, left, inheritance_set
+            # return link, left, inheritance_set
+            return bind_link
         
 
         elif current.startswith('scene'):
-            concept = box_concept
-            inh_link = atomspace.add_link(types.InheritanceLink, [scene, concept])
-            inheritance_set.add(inh_link)
+            # concept = box_concept
+            # inh_link = atomspace.add_link(types.InheritanceLink, [scene, concept])
+            # inheritance_set.add(inh_link)
             
                 
-            atomspace = scene.atomspace
+            # atomspace = scene.atomspace
             
+
             # let's turn data_atom into an InputModule
             # it holds features and attention
             # as a list of 2 tensors
             # TODO: find a better way to deal with this
-            # use two distinct atoms
+            
+            # let's use two distinct atoms
             features_atom = InputModule(ConceptNode("Data-{}".format(str(uuid.uuid4()))), features)
             attention_atom = InputModule(ConceptNode("Attention-{}".format(str(uuid.uuid4()))), ones_var)
 
@@ -656,7 +668,11 @@ def main():
         
             rev_prog = tuple(reversed(program_list))
 
-            eval_link, left, inheritance_set = form_bindlink(atomspace, output, rev_prog)
+            #eval_link, left, inheritance_set = form_bindlink(atomspace, output, rev_prog)
+            bind_link = form_bindlink(atomspace, output, rev_prog)
+            print ("bind_link = {}".format(bind_link))
+            result = execute_atom(atomspace, bind_link)
+            print ("result = {}".format(result))
             sys.exit(0)
               
 
