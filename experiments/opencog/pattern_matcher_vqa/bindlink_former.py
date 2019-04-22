@@ -524,7 +524,7 @@ def main():
             print ("now let's execute it")
             result = execute_atom(atomspace, link)
             print ("result = {}".format(result))
-            sys.exit(0)
+            # sys.exit(0)
 
             varlist = []
             for inh in inheritance_set:
@@ -545,6 +545,9 @@ def main():
            
             bind_link = BindLink(variable_list, conj, list_link)
             print ("bind_link = {}".format(bind_link))
+            result = execute_atom(atomspace, bind_link)
+            print ("result = {}".format(result))
+            sys.exit(0)
             
 
             # return link, left, inheritance_set
@@ -704,9 +707,9 @@ def main():
 
             #eval_link, left, inheritance_set = form_bindlink(atomspace, output, rev_prog)
             bind_link = form_bindlink(atomspace, output, rev_prog)
-            print ("bind_link = {}".format(bind_link))
-            result = execute_atom(atomspace, bind_link)
-            print ("result = {}".format(result))
+            # print ("bind_link = {}".format(bind_link))
+            # result = execute_atom(atomspace, bind_link)
+            # print ("result = {}".format(result))
             sys.exit(0)
               
 
