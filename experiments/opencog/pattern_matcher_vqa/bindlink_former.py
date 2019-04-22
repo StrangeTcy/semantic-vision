@@ -19,10 +19,9 @@ from opencog.scheme_wrapper import scheme_eval_as, scheme_eval
 from opencog.bindlink import execute_atom
 
 # ...now we should use the new & improved cogModules from module
-from module import CogModule, execute, get_value, evaluate, InputModule, EVALMODE  
+from module import CogModule, execute, get_value, set_value, evaluate, InputModule, EVALMODE  
 
-from module import CogModule, CogModel, get_value
-from module import InputModule, set_value
+from module import CogModel
 
 
 
@@ -508,24 +507,10 @@ def main():
             
             assert(inh_link not in inheritance_set)
             inheritance_set.add(inh_link)
+
             # link = build_filter(atomspace, concept, var, exec_out_sub=sub_prog)
             
-            # until i figure out the grounding,
-            # let's use hard-coding
-            # so
-            var = ConceptNode("rubber")
-
-            module_type = 'filter_' + query_type + '[' + var.name + ']'
-            module = function_modules[module_type]
-
-            # link = module.execute(features_atom.execute(), attention_atom)
-            link = module.execute(features_atom.execute(), out)
-            print ("link = {}".format(link))
-            print ("now let's execute it")
-            result = execute_atom(atomspace, link)
-            print ("result = {}".format(result))
-            # sys.exit(0)
-
+            
             varlist = []
             for inh in inheritance_set:
                 for atom in inh.get_out():
@@ -533,25 +518,61 @@ def main():
                         varlist.append(atom)
 
             print ("varlist = {}".format(varlist))
-            print ("link = {}".format(link))
-                    
+                               
             
             variable_list = atomspace.add_link(types.VariableList, varlist)
+            print ("variable_list = {}".format(variable_list))
+            
             conj = atomspace.add_link(types.AndLink, [*inheritance_set])
             print ("conj = {}".format(conj))
-            list_link = atomspace.add_link(types.ListLink, varlist + [link])
+            
+            list_link = atomspace.add_link(types.ListLink, [var])
             print ("list_link = {}".format(list_link))
-                       
+                     
            
             bind_link = BindLink(variable_list, conj, list_link)
             print ("bind_link = {}".format(bind_link))
             result = execute_atom(atomspace, bind_link)
             print ("result = {}".format(result))
-            sys.exit(0)
             
+            for atom in result.get_out():
+                # print ("atom.get_out()[0] is {}".format(atom.get_out()[0]))
+                var2 =  atom.get_out()[0]
+
+                module_type = 'filter_' + query_type + '[' + var2.name + ']'
+                module = function_modules[module_type]
+
+                link = module.execute(features_atom.execute(), out)
+                
+                varlist = []
+                for inh in inheritance_set:
+                    for atom in inh.get_out():
+                        if atom.type == types.VariableNode:
+                            varlist.append(atom)
+
+                # print ("varlist = {}".format(varlist))
+                # print ("link = {}".format(link))
+                        
+                
+                variable_list = atomspace.add_link(types.VariableList, varlist)
+                # print ("variable_list = {}".format(variable_list))
+                
+                conj = atomspace.add_link(types.AndLink, [*inheritance_set])
+                # print ("conj = {}".format(conj))
+                
+                list_link = atomspace.add_link(types.ListLink, varlist + [link])
+                # print ("list_link = {}".format(list_link))
+                          
+               
+                bind_link2 = BindLink(variable_list, conj, list_link)
+                print ("bind_link2 = {}".format(bind_link2))
+                result2 = execute_atom(atomspace, bind_link2)
+                print ("result2 = {}".format(result2))
+                     
 
             # return link, left, inheritance_set
-            return bind_link
+            # return bind_link
+            return result2
         
 
         elif current.startswith('scene'):
@@ -706,10 +727,9 @@ def main():
             rev_prog = tuple(reversed(program_list))
 
             #eval_link, left, inheritance_set = form_bindlink(atomspace, output, rev_prog)
-            bind_link = form_bindlink(atomspace, output, rev_prog)
-            # print ("bind_link = {}".format(bind_link))
-            # result = execute_atom(atomspace, bind_link)
-            # print ("result = {}".format(result))
+            # bind_link = form_bindlink(atomspace, output, rev_prog)
+            results = form_bindlink(atomspace, output, rev_prog)
+            print ("results = {}".format(results))
             sys.exit(0)
               
 
