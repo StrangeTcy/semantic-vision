@@ -70,7 +70,7 @@ class Stem(CogModule):
          
 
     def forward(self, x):
-        print ("stem got x = {}".format(x))
+        # print ("stem got x = {}".format(x))
         return self.stem(x) 
 
 
@@ -155,16 +155,44 @@ class AttentionModule(CogModule):
         torch.nn.init.kaiming_normal_(self.conv2.weight)
         torch.nn.init.kaiming_normal_(self.conv3.weight)
         self.dim = dim
+
+        # self = self.to(device)
             
 
     def forward(self, feats, attn):
+        # print ("self = {}".format(self))
         
+        print ("forcing device")
+        device = "cpu"
+
+        # print ("in AttentionModule.forward, device = {}".format(device))
+        # print ("feats = {}, \n attn = {}".format(feats, attn))
+        # sys.exit(0)
+
+        
+
         feats = feats.to(device)
         attn = attn.to(device)
         attended_feats = torch.mul(feats, attn.repeat(1, self.dim, 1, 1))
+        # print ("attended_feats = {}".format(attended_feats))
+        # sys.exit(0)
         out = F.relu(self.conv1(attended_feats))
+        # print ("self.conv1 = {}".format(self.conv1))
+        # sys.exit(0)
+        # conv_out = self.conv1(attended_feats)
+        # conv_out = nn.Conv2d(self.dim, self.dim, kernel_size=3, padding=1)(attended_feats)
+        # print ("conv_out = {}".format(conv_out))
+        # sys.exit(0)
+        # print ("out = {}".format(out))
+        # sys.exit(0)
         out = F.relu(self.conv2(out))
         out = torch.sigmoid(self.conv3(out))
+
+        # print ("out = {}".format(out))
+        # print ("changing device back")
+        out = out.to(torch.device("cuda"))
+        # print ("out = {}".format(out))
+        # sys.exit(0)
         return out
 
 
@@ -467,7 +495,7 @@ def main():
 
         if current.startswith('query'):
             query_type = current.split('_')[-1]
-            features_atom, attention_atom, left, inh = form_bindlink(atomspace, features, rest)
+            features_atom, attention_atom, out, left, inh = form_bindlink(atomspace, features, rest)
             print ("features_atom.execute() = {}".format(features_atom.execute()))
             print ("attention_atom = {}".format(attention_atom))
             # sys.exit(0)
@@ -490,7 +518,8 @@ def main():
             module_type = 'filter_' + query_type + '[' + var.name + ']'
             module = function_modules[module_type]
 
-            link = module.execute(features_atom.execute(), attention_atom)
+            # link = module.execute(features_atom.execute(), attention_atom)
+            link = module.execute(features_atom.execute(), out)
             print ("link = {}".format(link))
             print ("now let's execute it")
             result = execute_atom(atomspace, link)
@@ -504,7 +533,6 @@ def main():
                         varlist.append(atom)
 
             print ("varlist = {}".format(varlist))
-            # sys.exit(0)
             print ("link = {}".format(link))
                     
             
@@ -517,11 +545,7 @@ def main():
            
             bind_link = BindLink(variable_list, conj, list_link)
             print ("bind_link = {}".format(bind_link))
-            # sys.exit(0)
-
-
-            # module_type = 'filter_' + query_type# + '[' + var + ']'
-            # module = function_modules[module_type]
+            
 
             # return link, left, inheritance_set
             return bind_link
@@ -545,15 +569,23 @@ def main():
             features_atom = InputModule(ConceptNode("Data-{}".format(str(uuid.uuid4()))), features)
             attention_atom = InputModule(ConceptNode("Attention-{}".format(str(uuid.uuid4()))), ones_var)
 
-            return features_atom, attention_atom, rest, inheritance_set
+
+            # print ("features_atom = {}".format(features_atom()))
+            # print ("attention_atom = {}".format(attention_atom()))
+            # sys.exit(0)
+
+            out = None # we need this, we'll later hold temp results in there
+
+            return features_atom, attention_atom, out, rest, inheritance_set
         
 
         elif current.startswith('filter'):
             print ("in filter branch, we have current {}".format(current))
-                
+               
+            
                 
             filter_type, filter_arg = filter_reg.match(current).groups()
-            features_atom, attention_atom, left, inh = form_bindlink(atomspace, features, rest)
+            features_atom, attention_atom, out, left, inh = form_bindlink(atomspace, features, rest)
             # print ("in filter branch, sub_prog = {}".format(sub_prog))
             
             filter_type_atom = atomspace.add_node(types.ConceptNode, filter_type)
@@ -573,28 +605,30 @@ def main():
             module_type = 'filter_' + filter_type_atom.name + '[' + filter_arg_atom.name + ']'
             module = function_modules[module_type]
          
-            print ("features_atom.execute() = {}".format(features_atom.execute()))
-            if isinstance(attention_atom, CogModule):
-                print ("attention_atom.execute() = {}".format(attention_atom.execute()))
-            else:
-                print ("attention_atom = {}".format(attention_atom))
+            # print ("features_atom.execute() = {}".format(features_atom.execute()))
+            # if isinstance(attention_atom, CogModule):
+            #     print ("attention_atom.execute() = {}".format(attention_atom.execute()))
+            # else:
+            #     print ("attention_atom = {}".format(attention_atom))
             # out = module.execute() #data_atom.execute()[0], data_atom.execute()[1]
             if isinstance(attention_atom, CogModule):
+                print ("attention_atom was a CogModule")
                 out = module.execute(features_atom.execute(), attention_atom.execute())
             else:
-                out = module.execute(features_atom.execute(), attention_atom)
-            print ("out = {}".format(out))
-            # sys.exit(0)
+                # out = module.execute(features_atom.execute(), attention_atom)
+                out = module.execute(features_atom.execute(), out)
+            
 
             # this is probably a bad way to set values
             # but it works for now
             # TODO: find a better way
             # data_atom()[1] = out
             # print ("after, data_atom = {}".format(data_atom()))
-            attention_atom = out
+            # attention_atom = out
+            print ("we now have attention_atom = {}".format(attention_atom))
            
 
-            return features_atom, attention_atom, left, inheritance_set    
+            return features_atom, attention_atom, out, left, inheritance_set    
 
         elif current.startswith('relate'):
             relate_arg = relate_reg.match(current).groups()[0]
