@@ -576,27 +576,11 @@ def main():
         
 
         elif current.startswith('scene'):
-            # concept = box_concept
-            # inh_link = atomspace.add_link(types.InheritanceLink, [scene, concept])
-            # inheritance_set.add(inh_link)
-            
-                
-            # atomspace = scene.atomspace
-            
-
-            # let's turn data_atom into an InputModule
-            # it holds features and attention
-            # as a list of 2 tensors
-            # TODO: find a better way to deal with this
+           
             
             # let's use two distinct atoms
             features_atom = InputModule(ConceptNode("Data-{}".format(str(uuid.uuid4()))), features)
             attention_atom = InputModule(ConceptNode("Attention-{}".format(str(uuid.uuid4()))), ones_var)
-
-
-            # print ("features_atom = {}".format(features_atom()))
-            # print ("attention_atom = {}".format(attention_atom()))
-            # sys.exit(0)
 
             out = None # we need this, we'll later hold temp results in there
 
@@ -610,7 +594,6 @@ def main():
                 
             filter_type, filter_arg = filter_reg.match(current).groups()
             features_atom, attention_atom, out, left, inh = form_bindlink(atomspace, features, rest)
-            # print ("in filter branch, sub_prog = {}".format(sub_prog))
             
             filter_type_atom = atomspace.add_node(types.ConceptNode, filter_type)
             filter_arg_atom = atomspace.add_node(types.ConceptNode, filter_arg)
@@ -618,7 +601,7 @@ def main():
            
             inheritance_set |= inh
             
-            # data_atom = sub_prog
+          
             print ("we have filter_type {} and filter_arg {}".format(filter_type_atom.name, filter_arg_atom.name))
             inh_filter = InheritanceLink(filter_arg_atom, filter_type_atom)
             print ("InheritanceLink was created:{}".format(inh_filter))
@@ -628,13 +611,6 @@ def main():
             
             module_type = 'filter_' + filter_type_atom.name + '[' + filter_arg_atom.name + ']'
             module = function_modules[module_type]
-         
-            # print ("features_atom.execute() = {}".format(features_atom.execute()))
-            # if isinstance(attention_atom, CogModule):
-            #     print ("attention_atom.execute() = {}".format(attention_atom.execute()))
-            # else:
-            #     print ("attention_atom = {}".format(attention_atom))
-            # out = module.execute() #data_atom.execute()[0], data_atom.execute()[1]
             if isinstance(attention_atom, CogModule):
                 print ("attention_atom was a CogModule")
                 out = module.execute(features_atom.execute(), attention_atom.execute())
@@ -642,16 +618,8 @@ def main():
                 # out = module.execute(features_atom.execute(), attention_atom)
                 out = module.execute(features_atom.execute(), out)
             
-
-            # this is probably a bad way to set values
-            # but it works for now
-            # TODO: find a better way
-            # data_atom()[1] = out
-            # print ("after, data_atom = {}".format(data_atom()))
-            # attention_atom = out
             print ("we now have attention_atom = {}".format(attention_atom))
            
-
             return features_atom, attention_atom, out, left, inheritance_set    
 
         elif current.startswith('relate'):
